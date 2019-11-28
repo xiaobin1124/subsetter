@@ -1,0 +1,5 @@
+xregion="x=120.0:27.0"
+yregion="y=0.:60."
+zregion="z=1:30"
+output_dir=/SUGONP300-1/data_collab/Solomon
+output_prefix=d17
