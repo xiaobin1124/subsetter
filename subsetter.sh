@@ -1,7 +1,8 @@
 #!/bin/sh
 # regrid output for specific Region, xiaob 20190129
 # Original z-level
-set -x
+#set -x
+set -e
 #ymdh=$1
 if [[ $# -ne 3 ]];then
   echo Manditory input options: directory of filename, varname and config file.
@@ -38,8 +39,10 @@ source `dirname $config_file`/`basename $config_file`
 #out_dir_tmp=${output_dir}/tmp/$ymdh
 out_dir_tmp=${output_dir}/tmp/
 #dataout=${output_dir}/$ymdh
+if [ ! -d $output_dir ];then
+  mkdir -p $output_dir
+fi
 dataout=${output_dir}/
-jnl_dir=${output_dir}/jnl
 jnl=${output_dir}/$fname.jnl
 
 if [[ $vname == *u* ]] || [[ $vname == *v* ]];then
@@ -56,7 +59,7 @@ if [[ $vname == *salt* ]];then
   outtype=short
 fi
 if [[ $vname == *temp* ]];then
-  #xcoor=XT_OCEAN
+  xcoor=XT_OCEAN
   scale_factor=0.00125
   add_offset=30.
   outtype=short
@@ -72,13 +75,11 @@ fi
 if [ ! -d $dataout ];then
   mkdir -p $dataout
 fi
-if [ ! -d ${jnl_dir} ];then
-  mkdir -p ${jnl_dir}
-fi
 echo Run.regrid_mmd: $fname
 
 
 #zlev="1,10,20,30,40,50,75,80,100,125,150,200,250,300,400,500"
+if [ -z $zlev ];then #IF
 
 cat > $jnl << EOF
 use "$fname_dir"
@@ -99,6 +100,30 @@ define att ${var_out}1.add_offset = $add_offset
 set var/outtype=$outtype/bad=-32768 ${var_out}1
 save/file="$out_dir_tmp/${output_prefix}.${fname}"/clobber ${var_out}1
 EOF
+
+else                  #else 
+
+cat > $jnl << EOF
+use "$fname_dir"
+set mem/size=2000
+set axis/modulo $xcoor
+!define axis/$xregion/units=degree_east xax
+!define axis/$yregion/units=degree_north yax
+define axis/z zax={$zlev}
+define grid/z=zax ggz
+set region/$xregion/$yregion/$zregion
+
+let vmax=32767*$scale_factor+$add_offset
+let vmin=-32767*$scale_factor+$add_offset
+let ${var_out}0=${var_out}
+let ${var_out}1= IF ( ${var_out}0 LT vmax and ${var_out}0 GT vmin ) THEN ${var_out}0 ELSE (-32768*$scale_factor+$add_offset)
+define att ${var_out}1.scale_factor = $scale_factor
+define att ${var_out}1.add_offset = $add_offset
+set var/outtype=$outtype/bad=-32768 ${var_out}1
+save/file="$out_dir_tmp/${output_prefix}.${fname}"/clobber ${var_out}1[gz=ggz]
+EOF
+
+fi                    #FI
 ferret -script $jnl
 if [ $? -ne 0 ];then exit 1;fi
 #nccopy -d6 $out_dir/d12.${fname} $dataout/d12.${fname}
@@ -106,3 +131,5 @@ mv $out_dir_tmp/${output_prefix}.${fname} $dataout/${output_prefix}.${fname}
 gzip $dataout/${output_prefix}.${fname}
 #rm $out_dir/d12.${fname}
 rm $jnl
+rm -r out_dir_tmp
+exit 0
