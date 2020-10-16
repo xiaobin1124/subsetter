@@ -14,7 +14,7 @@ subsetter /path/to/fiocom/file.nc varname config_file
 cd /home/xiaobin/tools/subsetter
 subsetter /SUGONP300-1/FIOCOM/wav_2016-2018/2017090912.wave.nc hs ./test_config
 ```
-        执行上述命令，将在文件夹/raid2/data_collab1中生成一个区域的有效波高数据文件。
+执行上述命令，将在文件夹/raid2/data_collab1中生成一个区域的有效波高数据文件。
 
 提取配置文件实例：/home/xiaobin/tools/subsetter/test_config：
 ```bash
